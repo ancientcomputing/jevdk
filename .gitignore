@@ -1,0 +1,9 @@
+.DS_Store
+.build/
+.swiftpm/
+build/
+dist/
+xcuserdata/
+.env
+key.env
+jev-serve.json
