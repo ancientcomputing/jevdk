@@ -16,15 +16,15 @@ first: what they are if you know chatbots, and links to TypeSafe's and others' d
 
 ## Download
 
-From the [latest release](https://github.com/ancientcomputing/jevdk/releases/latest). Both need
-an Apple-silicon Mac with **macOS 27**, and both are signed and notarized.
+**[JevDK-x.y.z-arm64.dmg](https://github.com/ancientcomputing/jevdk/releases/latest)** from the
+latest release: one download for both tools. Needs an Apple-silicon Mac with **macOS 27**; signed
+and notarized.
 
-| | File | |
-|---|---|---|
-| **JevDK** | `JevDK-x.y.z-arm64.dmg` | Open it, drag JevDK to Applications, open it from there. |
-| **jev-serve** | `jev-serve-x.y.z-arm64.zip` | Unzip; keep the two `.framework` folders next to `jev-serve`. |
+1. Open the DMG and drag **JevDK** to Applications. Open it from there.
+2. For jev-serve: **JevDK → Install jev-serve Command…** (asks for your password once). It puts
+   `jev-serve` on your PATH, linked to the copy inside JevDK, so it updates when JevDK does.
 
-Each has a `.sha256` next to it: `shasum -a 256 -c <file>.sha256` checks your download.
+The `.sha256` next to the DMG checks your download: `shasum -a 256 -c JevDK-x.y.z-arm64.dmg.sha256`.
 
 ## JevDK in two minutes
 
@@ -40,7 +40,7 @@ writing questions to shipping them, in plain English.
 ## jev-serve in two minutes
 
 ```bash
-./jev-serve --model mlx-community/Qwen3-4B-4bit          # quick try; downloads the model if needed
+jev-serve --model mlx-community/Qwen3-4B-4bit          # quick try; downloads the model if needed
 ```
 
 ```bash
@@ -53,7 +53,7 @@ curl -s http://127.0.0.1:8746/v1/classifier -H "Content-Type: application/json" 
 
 For real use, export a config from JevDK (**File → Export Server Config…**): it carries the model
 pinned to the exact version you tested, your system instructions and calibration, and an optional
-token. Then `./jev-serve --config jev-serve.json`. Details: [jev-serve/README.md](jev-serve/README.md).
+token. Then `jev-serve --config jev-serve.json`. Details: [jev-serve/README.md](jev-serve/README.md).
 
 ## Source code
 
