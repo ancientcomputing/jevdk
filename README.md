@@ -76,4 +76,4 @@ in your shell); jev-serve follows it. This repo is a copy: both tools are mainta
 
 ## Contact
 
-[neuron@thisbrain.ai](mailto:neuron@thisbrain.ai) or our [Discord](https://discord.gg/dydVBTe9Jq).
+[Discord](https://discord.gg/dydVBTe9Jq).
