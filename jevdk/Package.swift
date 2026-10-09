@@ -16,7 +16,7 @@ import PackageDescription
 // so it declares Core itself. Same SDKRelease/knownSDKReleases/failManifest version gate as every
 // other example here.
 //
-// Requires SDK 2.0.0-dev or later (the decision API is new in 2.0), macOS 27 + Xcode 27. No Metal
+// Requires SDK 2.0.0-GA or later (the decision API is new in 2.0), macOS 27 + Xcode 27. No Metal
 // Toolchain needed — the prebuilt Inference xcframework bundles the compiled default.metallib.
 
 struct SDKRelease {
@@ -33,16 +33,16 @@ struct SDKRelease {
 // or edit `defaultSDKVersion` here. For a release not listed, add its entry (URL + the `.sha256`
 // next to each zip on the GitHub release) or just replace the strings in place. Only 2.0
 // releases: this app does not build against 1.0.
-let defaultSDKVersion = "2.0.0-dev"
+let defaultSDKVersion = "2.0.0-GA"
 
 let knownSDKReleases: [String: SDKRelease] = [
-    "2.0.0-dev": SDKRelease(
-        coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-dev/LocalLMLabSDKCore-2.0.0-dev.xcframework.zip",
-        coreChecksum: "c741066f04adf052c37202b5a857fbae5e68686a82f167b3af9a1fc565bb78eb",
-        remoteURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-dev/LocalLMLabSDKRemote-2.0.0-dev.xcframework.zip",
-        remoteChecksum: "a48098d692084ccde5db7c9e2e39806b579b387147a36546995e606baa51099e",
-        inferenceURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-dev/LocalLMLabSDKInference-2.0.0-dev.xcframework.zip",
-        inferenceChecksum: "79a393f494a9f865f3c039b1954eedbd7598bf77b3e50a786e83a297f1f6ed9e"
+    "2.0.0-GA": SDKRelease(
+        coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-GA/LocalLMLabSDKCore-2.0.0-GA.xcframework.zip",
+        coreChecksum: "246bad16b8a39dc72e037778d7e7128fe2742ea7cb7b19dd2d456b94bae131b1",
+        remoteURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-GA/LocalLMLabSDKRemote-2.0.0-GA.xcframework.zip",
+        remoteChecksum: "901198d2b1080bbb8ef13bdb7aecca5f9374f88af8c5361ad9e61e8052d58489",
+        inferenceURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-GA/LocalLMLabSDKInference-2.0.0-GA.xcframework.zip",
+        inferenceChecksum: "60d3f367338adb8093b705b776b68f2ca27fdec75f128b304d280c78f48c069c"
     ),
 ]
 
