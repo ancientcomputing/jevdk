@@ -33,9 +33,19 @@ struct SDKRelease {
 // or edit `defaultSDKVersion` here. For a release not listed, add its entry (URL + the `.sha256`
 // next to each zip on the GitHub release) or just replace the strings in place. Only 2.0
 // releases: this app does not build against 1.0.
-let defaultSDKVersion = "2.0.0-GA"
+let defaultSDKVersion = "2.1.0-GA"
 
 let knownSDKReleases: [String: SDKRelease] = [
+    // 2.1.0-GA: the Inference framework's bundle ID is valid (lab.locallm.sdk.inference; 2.0.0-GA's
+    // `mlx-swift_Cmlx` fails Mac App Store upload, error 90277).
+    "2.1.0-GA": SDKRelease(
+        coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.1.0-GA/LocalLMLabSDKCore-2.1.0-GA.xcframework.zip",
+        coreChecksum: "8ca2eda6e62e605678d6d4cdb5791b9dc8ca7bc4a0845aa09cce3ec39b63ef55",
+        remoteURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.1.0-GA/LocalLMLabSDKRemote-2.1.0-GA.xcframework.zip",
+        remoteChecksum: "99e6c24067ea5b0c4333d6dd167ee5e85bea12fca43931159f3906c2d0579997",
+        inferenceURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.1.0-GA/LocalLMLabSDKInference-2.1.0-GA.xcframework.zip",
+        inferenceChecksum: "21ce035b3baca98c6f975110ed21537349d10cb1edcbb4a795677672881ae0c2"
+    ),
     "2.0.0-GA": SDKRelease(
         coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-GA/LocalLMLabSDKCore-2.0.0-GA.xcframework.zip",
         coreChecksum: "5f9418a6879b22227afdf867cf474d426b93ae36d783d5a958efaae1e347681b",

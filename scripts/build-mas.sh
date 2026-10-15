@@ -184,15 +184,20 @@ iconutil -c icns -o "$RESOURCES_DIR/AppIcon.icns" "$WORK_DIR/AppIcon.iconset"
 cp "$ROOT/NOTICE" "$RESOURCES_DIR/NOTICE"
 cp "$RES_SRC/PrivacyInfo.xcprivacy" "$RESOURCES_DIR/PrivacyInfo.xcprivacy"
 
-# The Inference framework's bundle ID is `mlx-swift_Cmlx`, which App Store Connect rejects (90277:
-# not a valid bundle identifier). The SDK sets it so MLX finds default.metallib in the framework's
-# Resources by bundle ID. Give it a valid ID like Core's and Remote's, and move mlx-swift_Cmlx.bundle
-# into the app's own Resources instead: MLX looks in the main bundle for it first (device.cpp,
-# load_swiftpm_library), as in LocalLM Lab's MAS build. Moved, not copied: two bundles with the same
-# ID (mlx-swift.Cmlx.resources) in one app can be rejected too (90685).
+# SDK 2.0.0-GA only: its Inference framework's bundle ID is `mlx-swift_Cmlx`, which App Store Connect
+# rejects (90277: not a valid bundle identifier). That SDK sets it so MLX finds default.metallib in
+# the framework's Resources by bundle ID. Give it a valid ID like Core's and Remote's, and move
+# mlx-swift_Cmlx.bundle into the app's own Resources instead: MLX looks in the main bundle for it
+# first (device.cpp, load_swiftpm_library). Moved, not copied: two bundles with the same ID
+# (mlx-swift.Cmlx.resources) in one app can be rejected too (90685). SDK 2.1.0-GA and later ship a
+# valid ID (lab.locallm.sdk.inference) and need none of this.
 INFERENCE_FW="$FRAMEWORKS_DIR/LocalLMLabSDKInference.framework"
-/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier lab.locallm.sdk.inference" "$INFERENCE_FW/Resources/Info.plist"
-mv "$INFERENCE_FW/Resources/mlx-swift_Cmlx.bundle" "$RESOURCES_DIR/mlx-swift_Cmlx.bundle"
+INFERENCE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFERENCE_FW/Resources/Info.plist")"
+if [[ "$INFERENCE_ID" == mlx-swift_Cmlx ]]; then
+  echo "SDK 2.0.0-GA Inference framework: renaming its bundle ID and moving mlx-swift_Cmlx.bundle into the app"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier lab.locallm.sdk.inference" "$INFERENCE_FW/Resources/Info.plist"
+  mv "$INFERENCE_FW/Resources/mlx-swift_Cmlx.bundle" "$RESOURCES_DIR/mlx-swift_Cmlx.bundle"
+fi
 
 # The published xcframework zips carry AppleDouble/xattr detritus that breaks signing, and App
 # Store Connect rejects any file carrying com.apple.quarantine (error 91109) — a browser-downloaded
@@ -243,7 +248,7 @@ for fw in ${FRAMEWORKS[@]+"${FRAMEWORKS[@]}"}; do
   sign "$fw/$(basename "$fw" .framework)"
   sign "$fw"
 done
-sign "$RESOURCES_DIR/mlx-swift_Cmlx.bundle"
+if [[ -d "$RESOURCES_DIR/mlx-swift_Cmlx.bundle" ]]; then sign "$RESOURCES_DIR/mlx-swift_Cmlx.bundle"; fi
 sign --entitlements "$APP_ENTITLEMENTS" "$APP_DIR"
 
 codesign --verify --deep --strict --verbose=2 "$APP_DIR"
