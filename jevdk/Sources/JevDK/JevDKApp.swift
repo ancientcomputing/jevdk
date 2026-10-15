@@ -54,7 +54,18 @@ struct JevDKApp: App {
             // questions for your app (the SDK's DecisionQuestionSet), answers (CSV), and results (CSV).
             CommandGroup(replacing: .appInfo) {
                 Button("About JevDK") { AboutPanel.show() }
+                #if MAS_BUILD
+                // The Mac App Store build is sandboxed and can't put a command on the PATH, so it
+                // doesn't carry jev-serve; this opens its download page instead.
+                Button("Get jev-serve…") { NSWorkspace.shared.open(JevServeInstaller.downloadPage) }
+                #else
                 Button("Install jev-serve Command…") { JevServeInstaller.install() }
+                #endif
+            }
+            // Help: the guide, instead of macOS's "Help isn't available for JevDK".
+            CommandGroup(replacing: .help) {
+                Link("JevDK Guide", destination: AboutPanel.guidePage)
+                Link("Decision Models (Jev) in Your App", destination: AboutPanel.webPage)
             }
             CommandGroup(replacing: .newItem) {
                 Section("Workspace") {
@@ -93,13 +104,20 @@ struct ContentView: View {
     @AppStorage("showQuestionsPanel") private var showEditor = true
 
     var body: some View {
-        HSplitView {
-            if showEditor {
-                EditorView(model: model)
-                    .frame(minWidth: 380, idealWidth: 460)
+        // The status bar goes below the split view, not in a bottom safe-area inset: HSplitView's
+        // panes don't respect the inset, so it covered the bottom of the batch grid (its last row
+        // and horizontal scroller).
+        VStack(spacing: 0) {
+            HSplitView {
+                if showEditor {
+                    EditorView(model: model)
+                        .frame(minWidth: 380, idealWidth: 460)
+                }
+                ResultsView(model: model, openModels: { showDownload = true }, openBackends: { showBackends = true })
+                    .frame(minWidth: 480)
             }
-            ResultsView(model: model)
-                .frame(minWidth: 480)
+            Divider()
+            statusBar
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
@@ -148,7 +166,6 @@ struct ContentView: View {
                 .help("Compare the local model with hosted Jev (Featherless, OpenRouter · TypeSafe)")
             }
         }
-        .safeAreaInset(edge: .bottom) { statusBar }
         .sheet(isPresented: $showDownload) { ModelsSheet(model: model) }
         .confirmationDialog("Replace your current questions with “\(pendingPreset?.set.name ?? "")”?",
                             isPresented: Binding(get: { pendingPreset != nil }, set: { if !$0 { pendingPreset = nil } })) {
@@ -212,8 +229,9 @@ struct ContentView: View {
 @MainActor
 enum HeadlessCheck {
     static func runRemote(preset name: String, provider: String, model: String?) -> Never {
-        guard let p = preset(name), let backend = HostedBackend(rawValue: provider) else {
-            print("unknown preset or provider (have: \(HostedBackend.allCases.map(\.rawValue)))"); exit(1)
+        guard let p = preset(name), let backend = HostedBackend(rawValue: provider),
+              HostedBackend.offered.contains(backend) else {
+            print("unknown preset or provider (have: \(HostedBackend.offered.map(\.rawValue)))"); exit(1)
         }
         let key = APIKeys.key(for: backend)
         if backend.needsKey { print("key: \(key == nil ? "MISSING" : "found (\(key!.count) chars)")") }
@@ -320,10 +338,11 @@ struct BackendsSheet: View {
                 .padding(4)
             }
 
-            ForEach(HostedBackend.allCases) { b in
+            ForEach(HostedBackend.offered) { b in
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle(isOn: Binding(get: { model.hostedEnabled[b] ?? false }, set: { model.hostedEnabled[b] = $0 })) {
+                        Toggle(isOn: Binding(get: { model.hostedEnabled[b] ?? false },
+                                             set: { on in if !on || AIDataConsent.ask(b) { model.hostedEnabled[b] = on } })) {
                             VStack(alignment: .leading) {
                                 Text(b.displayName).fontWeight(.medium)
                                 Text(b.blurb).font(.jCaption).foregroundStyle(.secondary)
@@ -383,6 +402,7 @@ struct BackendsSheet: View {
 /// administrator password; if that doesn't work, it shows the command to run instead.
 enum JevServeInstaller {
     static let target = "/usr/local/bin/jev-serve"
+    static let downloadPage = URL(string: "https://thisbrain.ai/locallm/jev-serve.html")!
 
     static func install() {
         guard let tool = Bundle.main.url(forAuxiliaryExecutable: "jev-serve")?.path,
@@ -442,6 +462,7 @@ enum JevServeInstaller {
 /// JevDK → About: the icon, the version, and where to read about decision models.
 enum AboutPanel {
     static let webPage = URL(string: "https://thisbrain.ai/locallm/jev.html")!
+    static let guidePage = URL(string: "https://thisbrain.ai/locallm/jdk-guide.html")!
 
     /// The app's version when it runs as a built app (Xcode, or the DMG's), else "development build"
     /// (`swift run` has no bundle to carry one).

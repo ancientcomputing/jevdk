@@ -96,6 +96,8 @@ final class AppModel {
     var downloadRepo = ""
     var preflight: PreflightResult?
     var downloadProgress: Double?
+    /// The "model is ready, try it" notice after a download, cleared by the first run.
+    private var readyNotice: String?
 
     /// The SDK front door hosted runs go through.
     let lab = LocalLMLab()
@@ -114,7 +116,7 @@ final class AppModel {
         refreshModels()
         let d = UserDefaults.standard
         if d.object(forKey: "useLocal") != nil { useLocal = d.bool(forKey: "useLocal") }
-        for b in HostedBackend.allCases {
+        for b in HostedBackend.offered {
             hostedEnabled[b] = d.bool(forKey: "remote.\(b.rawValue).on")
             hostedModel[b] = d.string(forKey: "remote.\(b.rawValue).model") ?? b.defaultModel
             hostedModelChoices[b] = b.suggestedModels
@@ -144,7 +146,7 @@ final class AppModel {
 
     private func saveHostedSettings() {
         let d = UserDefaults.standard
-        for b in HostedBackend.allCases {
+        for b in HostedBackend.offered {
             d.set(hostedEnabled[b] ?? false, forKey: "remote.\(b.rawValue).on")
             d.set(hostedModel[b], forKey: "remote.\(b.rawValue).model")
         }
@@ -153,7 +155,7 @@ final class AppModel {
     func apiKey(_ b: HostedBackend) -> String? { Keychain.get(APIKeys.account(b)) }
     func setAPIKey(_ key: String?, _ b: HostedBackend) { Keychain.set(key, for: APIKeys.account(b)) }
 
-    var enabledHosted: [HostedBackend] { HostedBackend.allCases.filter { hostedEnabled[$0] == true } }
+    var enabledHosted: [HostedBackend] { HostedBackend.offered.filter { hostedEnabled[$0] == true } }
 
     var localLabel: String { "Local · \(selectedModel?.displayName ?? "no model")" }
 
@@ -272,6 +274,7 @@ final class AppModel {
         guard !isRunning else { return }
         if let problem = validationProblem() { errorMessage = problem; return }
         errorMessage = nil
+        if notice != nil && notice == readyNotice { notice = nil }   // it said what to do; done
         isRunning = true
         defer { isRunning = false }
         results = await runAll(input)
@@ -559,6 +562,10 @@ final class AppModel {
     // MARK: Models
 
     /// Text models tried as deciders or worth trying; all MLX 4-bit builds on Hugging Face.
+    /// The one GettingStarted offers to download: the tested default.
+    static let starterRepo = "mlx-community/Qwen3-4B-4bit"
+    static let starterSize = "2.3 GB"
+
     static let recommended: [(repo: String, note: String)] = [
         ("mlx-community/Qwen3-4B-4bit", "2.3 GB · tested as a decider: the current pick"),
         ("mlx-community/Qwen3-1.7B-4bit", "1.0 GB · tested: fast, but weaker on yes/no and answer checks"),
@@ -628,6 +635,10 @@ final class AppModel {
             selectedModelID = repo
             downloadRepo = ""
             preflight = nil
+            notice = samples.isEmpty
+                ? "\(repo) is ready. Click Ask to try it."
+                : "\(repo) is ready. Click a sample message above the input to try it."
+            readyNotice = notice
         } catch {
             errorMessage = "Download failed: \(error.localizedDescription)"
         }
@@ -710,7 +721,9 @@ final class AppModel {
     private func restoreWorkspace() {
         guard let data = UserDefaults.standard.data(forKey: Self.workspaceKey),
               let w = try? JSONDecoder().decode(Workspace.self, from: data) else {
-            samples = Presets.all.first { $0.set.name == set.name }?.samples ?? []
+            // First launch: Customer support, whose sample messages make a first answer one click
+            // away once a model is downloaded (GettingStarted).
+            loadPreset(Presets.all.first { $0.set.name == Presets.support.name } ?? Presets.all[0])
             return
         }
         restoring = true
