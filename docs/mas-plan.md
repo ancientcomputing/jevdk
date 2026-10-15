@@ -1,6 +1,6 @@
 # JevDK on the Mac App Store — plan
 
-Status: started 2026-10-14. The sandboxed build runs and was tested on this Mac (`MAS_SIGN=dev`); no store build or upload yet.
+Status: started 2026-10-14. Build 1.0.0 (20261015.0909) uploaded and processed in App Store Connect on 2026-10-15; not yet tested in TestFlight or submitted for review.
 Modelled on LocalLM Lab's MAS build (locallmlab `docs/mas-plan.md`), which is in TestFlight.
 
 ## Decisions
@@ -36,10 +36,31 @@ Modelled on LocalLM Lab's MAS build (locallmlab `docs/mas-plan.md`), which is in
 - The DMG variant (`swift build`, no `MAS_BUILD`) still builds.
 - 2026-10-15, demo removed: Backends lists Local, Featherless and OpenRouter · TypeSafe only; `--check-remote … featherlessDemo` answers "unknown provider (have: featherless, openRouter)". Not yet run against a keyed backend from the MAS app.
 
+## First upload (2026-10-15): rejected by App Store Connect
+
+- **90284**, every binary "must be signed with the certificate that is contained in the provisioning
+  profile": the JevDK profile was generated for the old "3rd Party Mac Developer Application"
+  certificate, which isn't a signing identity on this Mac; the build signed with "Apple Distribution".
+  Fix: regenerate the profile with the Apple Distribution certificate. `build-mas.sh` now signs with
+  whichever of the profile's certificates is in the keychain (by SHA-1), and stops with this
+  explanation when none is.
+- **90277**, `LocalLMLabSDKInference.framework` has bundle ID `mlx-swift_Cmlx` (the SDK's
+  `build-inference-xcframework.sh` sets it so MLX finds `default.metallib` by framework ID). Fix in
+  `build-mas.sh`: set it to `lab.locallm.sdk.inference` and copy `mlx-swift_Cmlx.bundle` into the
+  app's `Contents/Resources`, where MLX looks first. Verified: the dev build's `--check` runs a local
+  model. The script now also fails on any invalid bundle ID in the app. The bundle is moved, not
+  copied, so `mlx-swift.Cmlx.resources` appears only once (duplicates can fail with 90685); the
+  script fails on a duplicate ID too.
+- Second upload, `JevDK-1.0.0-20261015.0909.pkg`, with a profile regenerated for the Apple
+  Distribution certificate: accepted and processed.
+- The SDK fix (Inference framework ID `lab.locallm.sdk.inference` at the source) is locallmlab-sdk
+  `a21d9bc`. Once JevDK builds against an SDK release with it, the rename in `build-mas.sh` is a no-op
+  and the move can go.
+
 ## To do
 
-1. **Portal (you):** register App ID `ai.thisbrain.jevdk` (no capabilities needed); Mac App Store provisioning profile for it; App Store Connect record (name "JevDK", primary category Developer Tools); privacy policy and support URLs.
-2. `VERSION=1.0.0 MAS_SIGN=store scripts/build-mas.sh` → upload the `.pkg` with Transporter → TestFlight.
+1. ~~Portal: App ID, profile (Apple Distribution certificate), App Store Connect record.~~ Done 2026-10-15. Privacy policy (JevDK section) and support URLs still to set.
+2. ~~Store build and upload.~~ Done: 20261015.0909 processed.
 3. TestFlight pass on a clean Mac: download Qwen3-4B-4bit, Customer support example, batch, Featherless and OpenRouter with real keys (consent, key saved, answers), every save/open panel, Keychain key survives relaunch.
 4. Listing: screenshots (2880×1800), description, App Privacy label ("Data Not Collected"; hosted backends are the user's own choice of third party, disclosed in the app), age rating (free-text Hugging Face repo IDs → answer the AI questions as LocalLM Lab did).
 5. Web: a note on the JevDK guide and jev-serve pages that the MAS version doesn't include jev-serve and keeps its models in its own container.

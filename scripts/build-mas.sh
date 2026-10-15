@@ -68,8 +68,6 @@ if [[ "$MAS_SIGN" == dev ]]; then
   [[ -n "$APP_SIGN_IDENTITY" ]] || { echo "No Apple Development identity found (Xcode → Settings → Accounts → Manage Certificates)." >&2; exit 1; }
   TEAM_ID="$(cert_team "$APP_SIGN_IDENTITY")"
 else
-  APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | grep -oE '"Apple Distribution:[^"]+"' | head -1 | tr -d '"')}"
-  [[ -n "$APP_SIGN_IDENTITY" ]] || { echo "No Apple Distribution identity found." >&2; exit 1; }
   INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-$(security find-identity -v | grep -oE '"(Mac Installer Distribution|3rd Party Mac Developer Installer):[^"]+"' | head -1 | tr -d '"')}"
   [[ -n "$INSTALLER_SIGN_IDENTITY" ]] || { echo "No Mac Installer Distribution identity found." >&2; exit 1; }
 
@@ -90,11 +88,45 @@ else
   TEAM_ID="$(plutil -extract 'TeamIdentifier.0' raw -o - "$WORK_DIR/profile.plist")"
   APP_IDENTIFIER="$(plutil -extract 'Entitlements.com\.apple\.application-identifier' raw -o - "$WORK_DIR/profile.plist")"
   [[ "$APP_IDENTIFIER" == "$TEAM_ID.$BUNDLE_ID" ]] || { echo "Profile is for $APP_IDENTIFIER, expected $TEAM_ID.$BUNDLE_ID" >&2; exit 1; }
-  [[ "$(cert_team "$APP_SIGN_IDENTITY")" == "$TEAM_ID" ]] || { echo "Signing identity's team doesn't match the profile's." >&2; exit 1; }
+
+  # Sign with the certificate the profile was made for, by SHA-1. App Store Connect rejects an app
+  # whose signing certificate isn't in its profile (error 90284), and the portal lets a profile be
+  # generated for an older "3rd Party Mac Developer Application" certificate as well as for the
+  # current "Apple Distribution" one.
+  PROFILE_CERTS=()
+  count="$(plutil -extract DeveloperCertificates raw -o - "$WORK_DIR/profile.plist")"
+  for ((i = 0; i < count; i++)); do
+    plutil -extract "DeveloperCertificates.$i" raw -o - "$WORK_DIR/profile.plist" | base64 -d > "$WORK_DIR/cert.der"
+    PROFILE_CERTS+=("$(shasum -a 1 "$WORK_DIR/cert.der" | cut -c1-40 | tr a-f A-F)")
+  done
+  KEYCHAIN_IDENTITIES="$(security find-identity -v -p codesigning)"
+  if [[ -n "${APP_SIGN_IDENTITY:-}" ]]; then
+    # A name or a SHA-1; either way it must be one of the profile's certificates.
+    sha="$(grep -F "$APP_SIGN_IDENTITY" <<<"$KEYCHAIN_IDENTITIES" | awk '{print $2}' | head -1)"
+    [[ " ${PROFILE_CERTS[*]} " == *" $sha "* ]] || { echo "APP_SIGN_IDENTITY isn't a certificate in $PROVISIONING_PROFILE." >&2; exit 1; }
+    APP_SIGN_IDENTITY="$sha"
+  else
+    for sha in "${PROFILE_CERTS[@]}"; do
+      if grep -q " $sha " <<<"$KEYCHAIN_IDENTITIES"; then APP_SIGN_IDENTITY="$sha"; break; fi
+    done
+  fi
+  if [[ -z "${APP_SIGN_IDENTITY:-}" ]]; then
+    echo "None of the certificates in $PROVISIONING_PROFILE is a signing identity in your keychain:" >&2
+    for ((i = 0; i < count; i++)); do
+      plutil -extract "DeveloperCertificates.$i" raw -o - "$WORK_DIR/profile.plist" | base64 -d \
+        | openssl x509 -inform der -noout -subject 2>/dev/null | sed -nE 's/.*CN ?= ?([^,]+).*/  \1/p' >&2
+    done
+    echo "Regenerate the profile in the developer portal with your Apple Distribution certificate, download it, and run this again." >&2
+    exit 1
+  fi
 fi
 [[ -n "$TEAM_ID" ]] || { echo "Could not determine the team ID of $APP_SIGN_IDENTITY" >&2; exit 1; }
 echo "Mode: $MAS_SIGN, version $VERSION ($BUILD_NUMBER)"
-echo "Signing with: $APP_SIGN_IDENTITY"
+if [[ "$APP_SIGN_IDENTITY" =~ ^[0-9A-F]{40}$ ]]; then
+  echo "Signing with: $(grep -F "$APP_SIGN_IDENTITY" <<<"$(security find-identity -v -p codesigning)" | head -1 | sed -E 's/.*"(.*)".*/\1/') ($APP_SIGN_IDENTITY)"
+else
+  echo "Signing with: $APP_SIGN_IDENTITY"
+fi
 
 # --- Build ----------------------------------------------------------------------------------
 
@@ -144,11 +176,36 @@ iconutil -c icns -o "$RESOURCES_DIR/AppIcon.icns" "$WORK_DIR/AppIcon.iconset"
 cp "$ROOT/NOTICE" "$RESOURCES_DIR/NOTICE"
 cp "$RES_SRC/PrivacyInfo.xcprivacy" "$RESOURCES_DIR/PrivacyInfo.xcprivacy"
 
+# The Inference framework's bundle ID is `mlx-swift_Cmlx`, which App Store Connect rejects (90277:
+# not a valid bundle identifier). The SDK sets it so MLX finds default.metallib in the framework's
+# Resources by bundle ID. Give it a valid ID like Core's and Remote's, and move mlx-swift_Cmlx.bundle
+# into the app's own Resources instead: MLX looks in the main bundle for it first (device.cpp,
+# load_swiftpm_library), as in LocalLM Lab's MAS build. Moved, not copied: two bundles with the same
+# ID (mlx-swift.Cmlx.resources) in one app can be rejected too (90685).
+INFERENCE_FW="$FRAMEWORKS_DIR/LocalLMLabSDKInference.framework"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier lab.locallm.sdk.inference" "$INFERENCE_FW/Resources/Info.plist"
+mv "$INFERENCE_FW/Resources/mlx-swift_Cmlx.bundle" "$RESOURCES_DIR/mlx-swift_Cmlx.bundle"
+
 # The published xcframework zips carry AppleDouble/xattr detritus that breaks signing, and App
 # Store Connect rejects any file carrying com.apple.quarantine (error 91109) — a browser-downloaded
 # provisioning profile has it. Cleared before signing, since the signature seals the files.
 find "$APP_DIR" -name '._*' -delete
 xattr -cr "$APP_DIR"
+
+# Every bundle ID in the app must be letters, digits, hyphens and dots (90277), and appear only once
+# (90685), or the upload fails.
+SEEN_IDS=""
+while IFS= read -r plist; do
+  id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist" 2>/dev/null || true)"
+  [[ -n "$id" ]] || continue
+  if [[ ! "$id" =~ ^[A-Za-z0-9.-]+$ ]]; then
+    echo "Invalid bundle identifier '$id' in ${plist#"$APP_DIR/"}" >&2; exit 1
+  fi
+  if [[ " $SEEN_IDS " == *" $id "* ]]; then
+    echo "Bundle identifier '$id' appears more than once (again in ${plist#"$APP_DIR/"})" >&2; exit 1
+  fi
+  SEEN_IDS="$SEEN_IDS $id"
+done < <(find "$APP_DIR" -name Info.plist)
 
 # --- Entitlements ---------------------------------------------------------------------------
 
@@ -178,6 +235,7 @@ for fw in ${FRAMEWORKS[@]+"${FRAMEWORKS[@]}"}; do
   sign "$fw/$(basename "$fw" .framework)"
   sign "$fw"
 done
+sign "$RESOURCES_DIR/mlx-swift_Cmlx.bundle"
 sign --entitlements "$APP_ENTITLEMENTS" "$APP_DIR"
 
 codesign --verify --deep --strict --verbose=2 "$APP_DIR"
