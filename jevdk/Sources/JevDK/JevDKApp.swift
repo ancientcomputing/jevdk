@@ -62,6 +62,11 @@ struct JevDKApp: App {
                 Button("Install jev-serve Command…") { JevServeInstaller.install() }
                 #endif
             }
+            // Help: the guide, instead of macOS's "Help isn't available for JevDK".
+            CommandGroup(replacing: .help) {
+                Link("JevDK Guide", destination: AboutPanel.guidePage)
+                Link("Decision Models (Jev) in Your App", destination: AboutPanel.webPage)
+            }
             CommandGroup(replacing: .newItem) {
                 Section("Workspace") {
                     Button("Open…") { model.open() }.keyboardShortcut("o")
@@ -457,6 +462,7 @@ enum JevServeInstaller {
 /// JevDK → About: the icon, the version, and where to read about decision models.
 enum AboutPanel {
     static let webPage = URL(string: "https://thisbrain.ai/locallm/jev.html")!
+    static let guidePage = URL(string: "https://thisbrain.ai/locallm/jdk-guide.html")!
 
     /// The app's version when it runs as a built app (Xcode, or the DMG's), else "development build"
     /// (`swift run` has no bundle to carry one).
