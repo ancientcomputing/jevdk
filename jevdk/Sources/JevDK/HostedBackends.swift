@@ -26,6 +26,16 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The backends this build offers. The Mac App Store build leaves out the free Featherless
+    /// demo: every hosted backend there runs on the user's own account and key.
+    static var offered: [HostedBackend] {
+        #if MAS_BUILD
+        allCases.filter { $0 != .featherlessDemo }
+        #else
+        allCases
+        #endif
+    }
+
     var needsKey: Bool { self != .featherlessDemo }
 
     /// Who receives the text a run sends, for the consent question (AIDataConsent).
