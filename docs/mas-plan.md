@@ -53,9 +53,10 @@ Modelled on LocalLM Lab's MAS build (locallmlab `docs/mas-plan.md`), which is in
   script fails on a duplicate ID too.
 - Second upload, `JevDK-1.0.0-20261015.0909.pkg`, with a profile regenerated for the Apple
   Distribution certificate: accepted and processed.
-- The SDK fix (Inference framework ID `lab.locallm.sdk.inference` at the source) is locallmlab-sdk
-  `a21d9bc`. Once JevDK builds against an SDK release with it, the rename in `build-mas.sh` is a no-op
-  and the move can go.
+- The SDK fix (Inference framework ID `lab.locallm.sdk.inference` at the source) shipped in SDK
+  2.1.0-GA, and JevDK builds against it since 2026-10-15. `build-mas.sh` now applies the rename and
+  move only to a 2.0.0-GA framework. Verified with the 2.1.0-GA dev build: no bundle moved into the
+  app, and `--check` runs a local model in the sandbox.
 
 ## To do
 
