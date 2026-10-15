@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import LocalLMLabSDKCore
 import LocalLMLabSDKRemote
@@ -25,7 +26,26 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The backends this build offers. The Mac App Store build leaves out the free Featherless
+    /// demo: every hosted backend there runs on the user's own account and key.
+    static var offered: [HostedBackend] {
+        #if MAS_BUILD
+        allCases.filter { $0 != .featherlessDemo }
+        #else
+        allCases
+        #endif
+    }
+
     var needsKey: Bool { self != .featherlessDemo }
+
+    /// Who receives the text a run sends, for the consent question (AIDataConsent).
+    var dataRecipient: String {
+        switch self {
+        case .featherlessDemo: "Featherless's free demo service (featherless.ai)"
+        case .featherless: "Featherless (featherless.ai)"
+        case .openRouter: "OpenRouter (openrouter.ai), which passes it to TypeSafe's Jev model"
+        }
+    }
 
     /// Environment variable checked when no key is saved in the Keychain (CI, headless runs).
     var keyVariable: String? {
@@ -93,4 +113,27 @@ enum APIKeys {
     }
 
     static func account(_ backend: HostedBackend) -> String { "key.\(backend.rawValue)" }
+}
+
+/// Asks before a hosted backend is turned on, in the Mac App Store build (App Review guideline
+/// 5.1.2(i): name the AI service and what it receives, and get permission first). Asked every time
+/// one is turned on, so turning it off is how to withdraw. Other builds don't ask: the Backends
+/// sheet already says what hosted backends receive.
+@MainActor
+enum AIDataConsent {
+    static func ask(_ backend: HostedBackend) -> Bool {
+        #if MAS_BUILD
+        let alert = NSAlert()
+        alert.messageText = "Send your text to \(backend.displayName)?"
+        alert.informativeText = "While \(backend.displayName) is on, every input you run and your questions "
+            + "(with their instructions and options) are sent to \(backend.dataRecipient) to be answered. "
+            + "Their terms and privacy policy apply. The Local backend keeps everything on this Mac.\n\n"
+            + "Turn the backend off in Backends to stop sending."
+        alert.addButton(withTitle: "Allow")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
+        #else
+        true
+        #endif
+    }
 }
