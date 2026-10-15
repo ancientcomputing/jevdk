@@ -99,13 +99,20 @@ struct ContentView: View {
     @AppStorage("showQuestionsPanel") private var showEditor = true
 
     var body: some View {
-        HSplitView {
-            if showEditor {
-                EditorView(model: model)
-                    .frame(minWidth: 380, idealWidth: 460)
+        // The status bar goes below the split view, not in a bottom safe-area inset: HSplitView's
+        // panes don't respect the inset, so it covered the bottom of the batch grid (its last row
+        // and horizontal scroller).
+        VStack(spacing: 0) {
+            HSplitView {
+                if showEditor {
+                    EditorView(model: model)
+                        .frame(minWidth: 380, idealWidth: 460)
+                }
+                ResultsView(model: model, openModels: { showDownload = true }, openBackends: { showBackends = true })
+                    .frame(minWidth: 480)
             }
-            ResultsView(model: model, openModels: { showDownload = true }, openBackends: { showBackends = true })
-                .frame(minWidth: 480)
+            Divider()
+            statusBar
         }
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
@@ -154,7 +161,6 @@ struct ContentView: View {
                 .help("Compare the local model with hosted Jev (Featherless, OpenRouter · TypeSafe)")
             }
         }
-        .safeAreaInset(edge: .bottom) { statusBar }
         .sheet(isPresented: $showDownload) { ModelsSheet(model: model) }
         .confirmationDialog("Replace your current questions with “\(pendingPreset?.set.name ?? "")”?",
                             isPresented: Binding(get: { pendingPreset != nil }, set: { if !$0 { pendingPreset = nil } })) {
