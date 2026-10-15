@@ -54,7 +54,13 @@ struct JevDKApp: App {
             // questions for your app (the SDK's DecisionQuestionSet), answers (CSV), and results (CSV).
             CommandGroup(replacing: .appInfo) {
                 Button("About JevDK") { AboutPanel.show() }
+                #if MAS_BUILD
+                // The Mac App Store build is sandboxed and can't put a command on the PATH, so it
+                // doesn't carry jev-serve; this opens its download page instead.
+                Button("Get jev-serve…") { NSWorkspace.shared.open(JevServeInstaller.downloadPage) }
+                #else
                 Button("Install jev-serve Command…") { JevServeInstaller.install() }
+                #endif
             }
             CommandGroup(replacing: .newItem) {
                 Section("Workspace") {
@@ -323,7 +329,8 @@ struct BackendsSheet: View {
             ForEach(HostedBackend.allCases) { b in
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle(isOn: Binding(get: { model.hostedEnabled[b] ?? false }, set: { model.hostedEnabled[b] = $0 })) {
+                        Toggle(isOn: Binding(get: { model.hostedEnabled[b] ?? false },
+                                             set: { on in if !on || AIDataConsent.ask(b) { model.hostedEnabled[b] = on } })) {
                             VStack(alignment: .leading) {
                                 Text(b.displayName).fontWeight(.medium)
                                 Text(b.blurb).font(.jCaption).foregroundStyle(.secondary)
@@ -383,6 +390,7 @@ struct BackendsSheet: View {
 /// administrator password; if that doesn't work, it shows the command to run instead.
 enum JevServeInstaller {
     static let target = "/usr/local/bin/jev-serve"
+    static let downloadPage = URL(string: "https://thisbrain.ai/locallm/jev-serve.html")!
 
     static func install() {
         guard let tool = Bundle.main.url(forAuxiliaryExecutable: "jev-serve")?.path,
