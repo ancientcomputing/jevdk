@@ -114,7 +114,7 @@ final class AppModel {
         refreshModels()
         let d = UserDefaults.standard
         if d.object(forKey: "useLocal") != nil { useLocal = d.bool(forKey: "useLocal") }
-        for b in HostedBackend.allCases {
+        for b in HostedBackend.offered {
             hostedEnabled[b] = d.bool(forKey: "remote.\(b.rawValue).on")
             hostedModel[b] = d.string(forKey: "remote.\(b.rawValue).model") ?? b.defaultModel
             hostedModelChoices[b] = b.suggestedModels
@@ -144,7 +144,7 @@ final class AppModel {
 
     private func saveHostedSettings() {
         let d = UserDefaults.standard
-        for b in HostedBackend.allCases {
+        for b in HostedBackend.offered {
             d.set(hostedEnabled[b] ?? false, forKey: "remote.\(b.rawValue).on")
             d.set(hostedModel[b], forKey: "remote.\(b.rawValue).model")
         }
@@ -153,7 +153,7 @@ final class AppModel {
     func apiKey(_ b: HostedBackend) -> String? { Keychain.get(APIKeys.account(b)) }
     func setAPIKey(_ key: String?, _ b: HostedBackend) { Keychain.set(key, for: APIKeys.account(b)) }
 
-    var enabledHosted: [HostedBackend] { HostedBackend.allCases.filter { hostedEnabled[$0] == true } }
+    var enabledHosted: [HostedBackend] { HostedBackend.offered.filter { hostedEnabled[$0] == true } }
 
     var localLabel: String { "Local · \(selectedModel?.displayName ?? "no model")" }
 

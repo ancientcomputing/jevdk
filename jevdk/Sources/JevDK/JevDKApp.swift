@@ -218,8 +218,9 @@ struct ContentView: View {
 @MainActor
 enum HeadlessCheck {
     static func runRemote(preset name: String, provider: String, model: String?) -> Never {
-        guard let p = preset(name), let backend = HostedBackend(rawValue: provider) else {
-            print("unknown preset or provider (have: \(HostedBackend.allCases.map(\.rawValue)))"); exit(1)
+        guard let p = preset(name), let backend = HostedBackend(rawValue: provider),
+              HostedBackend.offered.contains(backend) else {
+            print("unknown preset or provider (have: \(HostedBackend.offered.map(\.rawValue)))"); exit(1)
         }
         let key = APIKeys.key(for: backend)
         if backend.needsKey { print("key: \(key == nil ? "MISSING" : "found (\(key!.count) chars)")") }
@@ -326,7 +327,7 @@ struct BackendsSheet: View {
                 .padding(4)
             }
 
-            ForEach(HostedBackend.allCases) { b in
+            ForEach(HostedBackend.offered) { b in
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle(isOn: Binding(get: { model.hostedEnabled[b] ?? false },
