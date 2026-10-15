@@ -26,6 +26,8 @@ set -euo pipefail
 #   INSTALLER_SIGN_IDENTITY store mode: override the auto-detected installer identity
 #   PROVISIONING_PROFILE    store mode: path to the profile (default: found by bundle ID)
 #   OUT_DIR                 where the .app (and .pkg) go (default: dist/mas-<mode>)
+#   TEST_BUNDLE_ID          dev mode only: another bundle ID, so the app starts in an empty container
+#                           (first-launch testing), e.g. ai.thisbrain.jevdk.firstrun
 #   DEVELOPER_DIR           Xcode 27 (default: xcode-select -p)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -41,6 +43,12 @@ case "$MAS_SIGN" in
   dev|store) ;;
   *) echo "MAS_SIGN must be dev or store (got: $MAS_SIGN)" >&2; exit 1 ;;
 esac
+# Dev only: TEST_BUNDLE_ID gives the app another ID, and so a fresh, empty sandbox container
+# (no models, no saved workspace) for testing a first launch. The store build always uses BUNDLE_ID.
+if [[ -n "${TEST_BUNDLE_ID:-}" ]]; then
+  [[ "$MAS_SIGN" == dev ]] || { echo "TEST_BUNDLE_ID is for MAS_SIGN=dev only." >&2; exit 1; }
+  BUNDLE_ID="$TEST_BUNDLE_ID"
+fi
 BUILD_NUMBER="${BUILD_NUMBER:-$(date +%Y%m%d.%H%M)}"
 OUT_DIR="${OUT_DIR:-$ROOT/dist/mas-$MAS_SIGN}"
 BUILD_DIR="$ROOT/build/mas"

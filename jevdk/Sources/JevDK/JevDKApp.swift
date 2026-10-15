@@ -104,7 +104,7 @@ struct ContentView: View {
                 EditorView(model: model)
                     .frame(minWidth: 380, idealWidth: 460)
             }
-            ResultsView(model: model)
+            ResultsView(model: model, openModels: { showDownload = true }, openBackends: { showBackends = true })
                 .frame(minWidth: 480)
         }
         .toolbar {
