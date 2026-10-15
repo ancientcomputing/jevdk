@@ -3,7 +3,13 @@ import Security
 
 /// API keys for remote Jev providers, in the login Keychain. Never written to disk or logs.
 enum Keychain {
+    #if MAS_BUILD
+    /// The Mac App Store build's own items, so with both builds installed it never finds (and makes
+    /// macOS ask about) the DMG build's keys.
+    private static let service = "ai.thisbrain.jevdk"
+    #else
     private static let service = "JevDK"
+    #endif
 
     static func get(_ account: String) -> String? {
         read(account, service: service)

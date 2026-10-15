@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Mac App Store build of JevDK (scripts/build-mas.sh, docs/mas-plan.md). In store mode the
+	     script adds com.apple.application-identifier + com.apple.developer.team-identifier from the
+	     provisioning profile (required for a manual codesign of a MAS build). -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- Hugging Face model search and downloads; hosted Jev (Featherless, OpenRouter). -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Open/save workspaces, export questions and server configs, answer and results CSVs. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>
