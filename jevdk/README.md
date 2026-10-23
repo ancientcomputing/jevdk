@@ -184,7 +184,8 @@ From the SDK's own OpenJev evaluation (a labelled test set scored on several loc
 
 ## Choosing a decider
 
-- **Local** (toolbar picker; **Models** to change): MLX models the SDK has downloaded and
+- **Local** (chosen in **Models**; the toolbar lists it with the hosted backends that are on):
+  MLX models the SDK has downloaded and
   verified. **Models** has three tabs: **Installed** (use or remove), **Recommended** (small
   dense instruct models, which ones were tested as deciders) and **Search Hugging Face** (MLX
   models, most downloaded first). Select one, **Check** (the SDK confirms the repo is reachable,

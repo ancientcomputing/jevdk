@@ -144,28 +144,16 @@ struct ContentView: View {
                 }
             }
             ToolbarItemGroup(placement: .primaryAction) {
-                if model.useLocal {
-                    Picker("Model", selection: $model.selectedModelID) {
-                        if model.models.isEmpty { Text("No models found").tag(String?.none) }
-                        ForEach(model.models) { m in
-                            Text("\(m.displayName) · \(m.sizeText)\(m.isMoE ? " · MoE ⚠︎" : "")")
-                                .tag(Optional(m.id))
-                        }
-                    }
-                    .frame(width: 300)
-                    .help(modelHelp)
-                } else {
-                    // Local is off: the picker would name a model no run uses. Show what does run.
-                    Button {
-                        showBackends = true
-                    } label: {
-                        Text(model.enabledHosted.isEmpty ? "No backends on"
-                             : model.enabledHosted.map(\.displayName).joined(separator: " + "))
-                            .lineLimit(1)
-                            .frame(maxWidth: 300)
-                    }
-                    .help("Local is off in Backends, so runs use only these hosted deciders. Click to change.")
+                // What a run uses: the local model (chosen in Models) and the hosted backends that
+                // are on (Backends). One label, not a second model picker.
+                Button {
+                    showBackends = true
+                } label: {
+                    Text(activeBackends)
+                        .lineLimit(1)
+                        .frame(maxWidth: 300)
                 }
+                .help(backendsHelp)
                 Button {
                     model.refreshModels()
                 } label: {
@@ -204,6 +192,22 @@ struct ContentView: View {
             model.persistNow()
         }
         .sheet(isPresented: $showBackends) { BackendsSheet(model: model) }
+    }
+
+    /// "Qwen3-4B-4bit + OpenRouter · TypeSafe + OpenAI", or "No backends on".
+    private var activeBackends: String {
+        var names: [String] = []
+        if model.useLocal {
+            names.append(model.selectedModel.map { "\($0.displayName)\($0.isMoE ? " ⚠︎" : "")" } ?? "No local model")
+        }
+        names += model.enabledHosted.map(\.displayName)
+        return names.isEmpty ? "No backends on" : names.joined(separator: " + ")
+    }
+
+    private var backendsHelp: String {
+        var lines = ["The deciders a run uses. Click to turn backends on or off; choose the local model in Models."]
+        if model.useLocal { lines.append(modelHelp) }
+        return lines.joined(separator: "\n\n")
     }
 
     private var modelHelp: String {
