@@ -3,15 +3,16 @@ import Foundation
 import LocalLMLabSDKCore
 import LocalLMLabSDKRemote
 
-/// The hosted Jev backends JevDK offers, each an SDK `JevDecisionProvider` registered in the
-/// lab under its own decision scheme. The Mac App Store build has no free Featherless demo: every
+/// The hosted backends JevDK offers, each an SDK `JevDecisionProvider` registered in the lab under
+/// its own decision scheme: hosted Jev (Featherless, TypeSafe on OpenRouter) and OpenAI's Decisions
+/// API (SDK 2.3, a different wire format behind the same provider). The Mac App Store build has no free Featherless demo: every
 /// hosted backend there runs on the user's own account and key, and the demo isn't in its binary
 /// at all (guideline 2.5.19: no dormant features).
 enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
     #if !MAS_BUILD
     case featherlessDemo
     #endif
-    case featherless, openRouter
+    case featherless, openRouter, openAI
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         #endif
         case .featherless: "Featherless"
         case .openRouter: "OpenRouter · TypeSafe"
+        case .openAI: "OpenAI"
         }
     }
 
@@ -32,6 +34,7 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         #endif
         case .featherless: "featherless.ai key · token-scored like Local"
         case .openRouter: "OpenRouter key · TypeSafe's decision-trained Jev"
+        case .openAI: "OpenAI key · GPT-6 Luna through OpenAI's Decisions API · may decline a question"
         }
     }
 
@@ -54,6 +57,7 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         #endif
         case .featherless: "Featherless (featherless.ai)"
         case .openRouter: "OpenRouter (openrouter.ai), which passes it to TypeSafe's Jev model"
+        case .openAI: "OpenAI (openai.com)"
         }
     }
 
@@ -65,6 +69,7 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         case .featherlessDemo: nil
         case .featherless: "FEATHERLESS_API_KEY"
         case .openRouter: "OPENROUTER_API_KEY"
+        case .openAI: "OPENAI_API_KEY"
         }
     }
     #endif
@@ -76,6 +81,7 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         #endif
         case .featherless: "featherless-ai/Qwen3.8-27B-classifier"
         case .openRouter: "typesafe/jev-1.13"
+        case .openAI: "gpt-6-luna"
         }
     }
 
@@ -89,6 +95,7 @@ enum HostedBackend: String, CaseIterable, Identifiable, Sendable {
         #endif
         case .featherless: c = .featherless(key: key ?? "")
         case .openRouter: c = .openRouter(key: key ?? "")
+        case .openAI: c = .openAI(key: key ?? "")
         }
         c.scheme = rawValue.lowercased()
         return c

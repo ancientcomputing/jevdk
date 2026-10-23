@@ -297,7 +297,8 @@ enum HeadlessCheck {
                                                 backend: info.model)
                     lines += ResultsCSV.rows(run: runInfo, backend: info, result: result, labels: [:],
                                              inputTokens: d.usage?.inputTokens, costUSD: d.usage?.cost)
-                    let cells = rows.map { "\($0.question.name)=\($0.answer) \(Int(($0.confidence * 100).rounded()))%" }
+                    let cells = rows.map { $0.refused ? "\($0.question.name)=refused"
+                                                      : "\($0.question.name)=\($0.answer) \(Int(($0.confidence * 100).rounded()))%" }
                     let ms = Double(d.latency.components.seconds) * 1000 + Double(d.latency.components.attoseconds) / 1e15
                     print(String(format: "%5.0f ms  ", ms) + line.prefix(60) + "\n          " + cells.joined(separator: "  ")
                           + (d.usage?.summary.map { "\n          [\($0)]" } ?? ""))

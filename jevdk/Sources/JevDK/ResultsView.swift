@@ -268,12 +268,22 @@ struct BackendAnswer: View {
                 Text(label).font(.jCaption.weight(.semibold))
                 Text(fidelityText).font(.jCaption2).foregroundStyle(.secondary)
                 Spacer()
-                Text(result.answer).font(.jHeadline)
-                Text(percent(result.confidence))
-                    .font(.jHeadline.monospacedDigit())
-                    .foregroundStyle(confidenceColor(result.confidence))
+                if result.refused {
+                    Text("Refused").font(.jHeadline).foregroundStyle(.orange)
+                } else {
+                    Text(result.answer).font(.jHeadline)
+                    Text(percent(result.confidence))
+                        .font(.jHeadline.monospacedDigit())
+                        .foregroundStyle(confidenceColor(result.confidence))
+                }
             }
-            ForEach(result.keys.indices, id: \.self) { i in
+            if result.refused {
+                Label("The backend declined to answer this question, so there are no probabilities. In your app it's in Decision.refusals (d.isRefused(\"\(result.question.name)\")) and has no answer.",
+                      systemImage: "hand.raised")
+                    .font(.jCaption)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(result.refused ? [] : Array(result.keys.indices), id: \.self) { i in
                 HStack(spacing: 8) {
                     Text(result.labels[i])
                         .font(.system(size: 12, design: .monospaced).weight(.bold))
@@ -406,13 +416,22 @@ struct BatchGrid: View {
         if let results = run.result?.results, results.indices.contains(qi) {
             let r = results[qi]
             let verdict = mark.map { $0 == r.answer ? "✓ " : "✗ " } ?? ""
-            Text("\(tag.map { $0 + " " } ?? "")\(verdict)\(r.answer) \(percent(r.confidence))")
-                .font(.jCaption.monospacedDigit())
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(confidenceColor(r.confidence).opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
-                .help("\(run.label)\(r.fidelity == .tokenScored(calibrated: true) ? " (calibrated)" : "")\n"
-                      + zip(r.keys, r.probabilities).map { "\($0): \(percent($1))" }.joined(separator: "\n"))
+            if r.refused {
+                Text("\(tag.map { $0 + " " } ?? "")\(verdict)refused")
+                    .font(.jCaption)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.orange.opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
+                    .help("\(run.label) declined to answer this question.")
+            } else {
+                Text("\(tag.map { $0 + " " } ?? "")\(verdict)\(r.answer) \(percent(r.confidence))")
+                    .font(.jCaption.monospacedDigit())
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(confidenceColor(r.confidence).opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
+                    .help("\(run.label)\(r.fidelity == .tokenScored(calibrated: true) ? " (calibrated)" : "")\n"
+                          + zip(r.keys, r.probabilities).map { "\($0): \(percent($1))" }.joined(separator: "\n"))
+            }
         } else {
             Text("\(tag.map { $0 + " " } ?? "")error").font(.jCaption).foregroundStyle(.orange).help(run.error ?? "")
         }

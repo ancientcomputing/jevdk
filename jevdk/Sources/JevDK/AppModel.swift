@@ -186,7 +186,7 @@ final class AppModel {
             lab.models.replace(decision: JevDecisionProvider(b.config(key: b.needsKey ? apiKey(b) : nil)))
             let route = RouteName("hosted.\(b.rawValue)")
             lab.models.route(decision: route, to: id)
-            let body = (try? JevDecisionProvider.requestBody(model: model, request: request))
+            let body = (try? JevDecisionProvider.requestBody(model: model, request: request, wire: b.config(key: nil).wire))
                 .flatMap { try? JSONSerialization.jsonObject(with: $0) }
                 .flatMap { try? JSONSerialization.data(withJSONObject: $0, options: [.prettyPrinted]) }
                 .map { String(decoding: $0, as: UTF8.self) } ?? ""
