@@ -14,6 +14,9 @@ set -euo pipefail
 # Differs from the DMG build (scripts/release.sh, which is unaffected):
 #   - compiled with MAS_BUILD: no jev-serve installer (JevDK → Get jev-serve… opens its download
 #     page), and turning on a hosted backend asks before any text is sent to it;
+#   - DMG-only features compiled out (guideline 2.5.19: no hidden, dormant or undocumented
+#     features): the command-line modes (--check, --check-remote, --csv, --write-iconset), the free
+#     Featherless demo, and API keys from environment variables. The build fails if any is left;
 #   - no jev-serve inside the app (a sandboxed copy couldn't run from the PATH);
 #   - sandboxed (scripts/mas/JevDK.entitlements); models are downloaded into the app's container,
 #     not the shared ~/.cache/huggingface;
@@ -175,8 +178,13 @@ PLIST="$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string Copyright © 2026 ThisBrainAI LLC. All rights reserved." "$PLIST"
 
 # The app icon is drawn in code; render it into AppIcon.icns, as the DMG build does.
+# The MAS binary has no command-line modes (guideline 2.5.19), so the icon is rendered by the
+# command-line build of the same app (`swift build`, no MAS_BUILD), kept in its own scratch path.
 echo "Rendering the app icon..."
-"$CONTENTS_DIR/MacOS/$APP_NAME" --write-iconset "$WORK_DIR/AppIcon.iconset"
+ICON_SCRATCH="$ROOT/build/icon-tool"
+swift build --package-path "$APP_ROOT" --scratch-path "$ICON_SCRATCH" --product "$APP_NAME" -q
+"$(swift build --package-path "$APP_ROOT" --scratch-path "$ICON_SCRATCH" --show-bin-path)/$APP_NAME" \
+  --write-iconset "$WORK_DIR/AppIcon.iconset"
 iconutil -c icns -o "$RESOURCES_DIR/AppIcon.icns" "$WORK_DIR/AppIcon.iconset"
 /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string AppIcon" "$PLIST"
 
@@ -204,6 +212,14 @@ fi
 # provisioning profile has it. Cleared before signing, since the signature seals the files.
 find "$APP_DIR" -name '._*' -delete
 xattr -cr "$APP_DIR"
+
+# Guideline 2.5.19 (no hidden, dormant or undocumented features): the DMG-only parts are compiled out
+# of the MAS build. Fail if any of them is still in the binary.
+for marker in simple-jev-demo-api.featherless.ai FEATHERLESS_API_KEY OPENROUTER_API_KEY "Couldn't write the iconset"; do
+  if strings "$CONTENTS_DIR/MacOS/$APP_NAME" | grep -qF "$marker"; then
+    echo "The MAS binary still contains a DMG-only feature ($marker): check the #if MAS_BUILD gates." >&2; exit 1
+  fi
+done
 
 # Every bundle ID in the app must be letters, digits, hyphens and dots (90277), and appear only once
 # (90685), or the upload fails.

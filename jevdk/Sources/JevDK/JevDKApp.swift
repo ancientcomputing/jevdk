@@ -10,6 +10,9 @@ struct JevDKApp: App {
     @State private var model = AppModel()
 
     init() {
+        // Command-line modes for development and the DMG release script. Not in the Mac App Store
+        // build (guideline 2.5.19: no undocumented features; its icon is rendered by a non-MAS build).
+        #if !MAS_BUILD
         // Headless checks, both through `lab.decide` like the window:
         // `JevDK --check <preset name> <repo id>` runs a preset's batch on a local model the SDK
         // has downloaded and prints the answers, then exits.
@@ -31,6 +34,7 @@ struct JevDKApp: App {
         if let i = args.firstIndex(of: "--write-iconset"), args.count > i + 1 {
             AppIcon.writeIconset(to: URL(fileURLWithPath: args[i + 1]))
         }
+        #endif
 
         // Launched with `swift run` there is no app bundle, so macOS starts this as a
         // background-style process that never becomes active. Claim regular-app status
@@ -66,6 +70,8 @@ struct JevDKApp: App {
             CommandGroup(replacing: .help) {
                 Link("JevDK Guide", destination: AboutPanel.guidePage)
                 Link("Decision Models (Jev) in Your App", destination: AboutPanel.webPage)
+                Divider()
+                Link("Privacy Policy", destination: AboutPanel.privacyPage)
             }
             CommandGroup(replacing: .newItem) {
                 Section("Workspace") {
@@ -225,13 +231,13 @@ struct ContentView: View {
     }
 }
 
+#if !MAS_BUILD
 /// `--check` / `--check-remote`: a preset's batch through `lab.decide`, printed.
 @MainActor
 enum HeadlessCheck {
     static func runRemote(preset name: String, provider: String, model: String?) -> Never {
-        guard let p = preset(name), let backend = HostedBackend(rawValue: provider),
-              HostedBackend.offered.contains(backend) else {
-            print("unknown preset or provider (have: \(HostedBackend.offered.map(\.rawValue)))"); exit(1)
+        guard let p = preset(name), let backend = HostedBackend(rawValue: provider) else {
+            print("unknown preset or provider (have: \(HostedBackend.allCases.map(\.rawValue)))"); exit(1)
         }
         let key = APIKeys.key(for: backend)
         if backend.needsKey { print("key: \(key == nil ? "MISSING" : "found (\(key!.count) chars)")") }
@@ -315,6 +321,7 @@ enum HeadlessCheck {
         exit(0)
     }
 }
+#endif
 
 struct BackendsSheet: View {
     @Bindable var model: AppModel
@@ -338,7 +345,7 @@ struct BackendsSheet: View {
                 .padding(4)
             }
 
-            ForEach(HostedBackend.offered) { b in
+            ForEach(HostedBackend.allCases) { b in
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle(isOn: Binding(get: { model.hostedEnabled[b] ?? false },
@@ -463,6 +470,8 @@ enum JevServeInstaller {
 enum AboutPanel {
     static let webPage = URL(string: "https://thisbrain.ai/locallm/jev.html")!
     static let guidePage = URL(string: "https://thisbrain.ai/locallm/jdk-guide.html")!
+    /// Guideline 5.1.1(i): a privacy policy link inside the app (Help and About).
+    static let privacyPage = URL(string: "https://thisbrain.ai/locallm/privacy.html#jevdk")!
 
     /// The app's version when it runs as a built app (Xcode, or the DMG's), else "development build"
     /// (`swift run` has no bundle to carry one).
@@ -483,6 +492,10 @@ enum AboutPanel {
         credits.append(NSAttributedString(string: "Decision models (Jev) in your app", attributes: [
             .font: body, .link: webPage, .paragraphStyle: centered,
         ]))
+        credits.append(NSAttributedString(string: "\n", attributes: [.font: body, .paragraphStyle: centered]))
+        credits.append(NSAttributedString(string: "Privacy Policy", attributes: [
+            .font: body, .link: privacyPage, .paragraphStyle: centered,
+        ]))
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
             .applicationIcon: AppIcon.image(),
             .applicationName: "JevDK",
@@ -500,6 +513,7 @@ enum AboutPanel {
 enum AppIcon {
     static let blue = NSColor(srgbRed: 0x2f / 255, green: 0x6f / 255, blue: 0xed / 255, alpha: 1)
 
+    #if !MAS_BUILD
     /// The `.iconset` folder `iconutil -c icns` turns into AppIcon.icns. Exits.
     static func writeIconset(to dir: URL) -> Never {
         do {
@@ -525,6 +539,7 @@ enum AppIcon {
             exit(1)
         }
     }
+    #endif
 
     static func image(size: CGFloat = 512) -> NSImage {
         NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in

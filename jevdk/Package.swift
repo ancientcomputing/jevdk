@@ -40,11 +40,11 @@ let knownSDKReleases: [String: SDKRelease] = [
     // `mlx-swift_Cmlx` fails Mac App Store upload, error 90277).
     "2.1.0-GA": SDKRelease(
         coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.1.0-GA/LocalLMLabSDKCore-2.1.0-GA.xcframework.zip",
-        coreChecksum: "8ca2eda6e62e605678d6d4cdb5791b9dc8ca7bc4a0845aa09cce3ec39b63ef55",
+        coreChecksum: "8d541e06f81d1586c959d6159a259c759853c88b2c68385ab28de493af6c5776",
         remoteURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.1.0-GA/LocalLMLabSDKRemote-2.1.0-GA.xcframework.zip",
-        remoteChecksum: "99e6c24067ea5b0c4333d6dd167ee5e85bea12fca43931159f3906c2d0579997",
+        remoteChecksum: "347257172a6da7104b7081602e9dbfc853ed5d038b5e30831aad8dfa2753ae92",
         inferenceURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.1.0-GA/LocalLMLabSDKInference-2.1.0-GA.xcframework.zip",
-        inferenceChecksum: "21ce035b3baca98c6f975110ed21537349d10cb1edcbb4a795677672881ae0c2"
+        inferenceChecksum: "77d3d1a1bae9df6de5955dfa945242c177cb129b4896c95befb81db6c923656f"
     ),
     "2.0.0-GA": SDKRelease(
         coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.0.0-GA/LocalLMLabSDKCore-2.0.0-GA.xcframework.zip",
