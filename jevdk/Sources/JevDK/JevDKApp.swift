@@ -144,15 +144,28 @@ struct ContentView: View {
                 }
             }
             ToolbarItemGroup(placement: .primaryAction) {
-                Picker("Model", selection: $model.selectedModelID) {
-                    if model.models.isEmpty { Text("No models found").tag(String?.none) }
-                    ForEach(model.models) { m in
-                        Text("\(m.displayName) · \(m.sizeText)\(m.isMoE ? " · MoE ⚠︎" : "")")
-                            .tag(Optional(m.id))
+                if model.useLocal {
+                    Picker("Model", selection: $model.selectedModelID) {
+                        if model.models.isEmpty { Text("No models found").tag(String?.none) }
+                        ForEach(model.models) { m in
+                            Text("\(m.displayName) · \(m.sizeText)\(m.isMoE ? " · MoE ⚠︎" : "")")
+                                .tag(Optional(m.id))
+                        }
                     }
+                    .frame(width: 300)
+                    .help(modelHelp)
+                } else {
+                    // Local is off: the picker would name a model no run uses. Show what does run.
+                    Button {
+                        showBackends = true
+                    } label: {
+                        Text(model.enabledHosted.isEmpty ? "No backends on"
+                             : model.enabledHosted.map(\.displayName).joined(separator: " + "))
+                            .lineLimit(1)
+                            .frame(maxWidth: 300)
+                    }
+                    .help("Local is off in Backends, so runs use only these hosted deciders. Click to change.")
                 }
-                .frame(width: 300)
-                .help(modelHelp)
                 Button {
                     model.refreshModels()
                 } label: {
@@ -169,7 +182,7 @@ struct ContentView: View {
                 } label: {
                     Label("Backends", systemImage: "square.3.layers.3d")
                 }
-                .help("Compare the local model with hosted Jev (Featherless, OpenRouter · TypeSafe)")
+                .help("Compare the local model with hosted deciders (Featherless, OpenRouter · TypeSafe, OpenAI)")
             }
         }
         .sheet(isPresented: $showDownload) { ModelsSheet(model: model) }
