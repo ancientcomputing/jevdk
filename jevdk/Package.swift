@@ -33,9 +33,19 @@ struct SDKRelease {
 // or edit `defaultSDKVersion` here. For a release not listed, add its entry (URL + the `.sha256`
 // next to each zip on the GitHub release) or just replace the strings in place. Only 2.0
 // releases: this app does not build against 1.0.
-let defaultSDKVersion = "2.1.0-GA"
+let defaultSDKVersion = "2.3.0-dev"
 
 let knownSDKReleases: [String: SDKRelease] = [
+    // 2.3.0-dev: OpenAI's Decisions API (JevProviderConfig.openAI) and Decision.refusals, which
+    // JevDK's OpenAI backend needs.
+    "2.3.0-dev": SDKRelease(
+        coreURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.3.0-dev/LocalLMLabSDKCore-2.3.0-dev.xcframework.zip",
+        coreChecksum: "c1c48b56a343b725cf3bcbaacae2d10576037d0ad1619983d032a322d9ef2618",
+        remoteURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.3.0-dev/LocalLMLabSDKRemote-2.3.0-dev.xcframework.zip",
+        remoteChecksum: "b48415fd049aaccf0a7ee69f425a3d122a3cc91dfa0fdae934c358ffb6417867",
+        inferenceURL: "https://github.com/ancientcomputing/locallm/releases/download/v2.3.0-dev/LocalLMLabSDKInference-2.3.0-dev.xcframework.zip",
+        inferenceChecksum: "3b21af5f610722595b168f0cde8700f78bb8df0bbd6c88733d952b3ce333eb9a"
+    ),
     // 2.1.0-GA: the Inference framework's bundle ID is valid (lab.locallm.sdk.inference; 2.0.0-GA's
     // `mlx-swift_Cmlx` fails Mac App Store upload, error 90277).
     "2.1.0-GA": SDKRelease(
