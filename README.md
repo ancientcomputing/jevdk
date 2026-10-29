@@ -62,9 +62,9 @@ Both are open source (Apache 2.0) and built on the [LocalLM Lab SDK](https://thi
 - [jevdk/](jevdk/): the app ([README](jevdk/README.md), [developer's guide](jevdk/GUIDE.md))
 - [jev-serve/](jev-serve/): the server ([README](jev-serve/README.md))
 
-They build against **LocalLM Lab SDK 2.3.0-GA**, using only its published binaries, which
+They build against **LocalLM Lab SDK 2.4.0-dev**, using only its published binaries, which
 `jevdk/Package.swift` downloads from the SDK's
-[v2.3.0-GA release](https://github.com/ancientcomputing/locallm/releases/tag/v2.3.0-GA) (no other
+[v2.4.0-dev release](https://github.com/ancientcomputing/locallm/releases/tag/v2.4.0-dev) (no other
 setup; Xcode 27, Swift 6.4). The SDK's [developer guide](https://thisbrain.ai/locallm/sdk-guide.html)
 covers decision models in §6c.
 
@@ -73,11 +73,11 @@ cd jevdk && swift build -c release && .build/release/JevDK
 cd jev-serve && swift build -c release && .build/release/jev-serve --help
 ```
 
-The SDK version is set by `defaultSDKVersion` in `jevdk/Package.swift`, currently `2.3.0-GA` (or
+The SDK version is set by `defaultSDKVersion` in `jevdk/Package.swift`, currently `2.4.0-dev` (or
 `LOCALLM_SDK_VERSION` in your shell); jev-serve follows it. This repo is a copy: both tools are
 maintained as examples in [ancientcomputing/locallm](https://github.com/ancientcomputing/locallm)
-([`examples/jevdk`](https://github.com/ancientcomputing/locallm/tree/2.3.0-GA/examples/jevdk),
-[`examples/jev-serve`](https://github.com/ancientcomputing/locallm/tree/2.3.0-GA/examples/jev-serve);
+([`examples/jevdk`](https://github.com/ancientcomputing/locallm/tree/2.4.0-dev/examples/jevdk),
+[`examples/jev-serve`](https://github.com/ancientcomputing/locallm/tree/2.4.0-dev/examples/jev-serve);
 see [SOURCE.md](SOURCE.md)).
 
 ## Contact
