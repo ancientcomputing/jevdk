@@ -48,7 +48,11 @@ struct JevDKApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("JevDK") {
+        // One window, one workspace: a `Window`, not a `WindowGroup`. As the app's only scene, closing
+        // it quits JevDK, after saving the workspace (App Review: a single-window app may save and
+        // quit when its main window closes; with a WindowGroup, nothing reopened a closed window,
+        // because File → New is JevDK's own Open…).
+        Window("JevDK", id: "main") {
             ContentView(model: model)
                 .font(.jBody)
                 .frame(minWidth: 1060, minHeight: 660)
@@ -79,6 +83,10 @@ struct JevDKApp: App {
                 }
             }
             CommandGroup(replacing: .saveItem) {
+                // Replacing .saveItem drops the standard Close too, so put it back. Closing the window
+                // quits JevDK (one Window scene); the workspace is saved first.
+                Button("Close Window") { NSApplication.shared.keyWindow?.performClose(nil) }
+                    .keyboardShortcut("w")
                 Section("Workspace") {
                     Button("Save Workspace") { model.save() }.keyboardShortcut("s")
                     Button("Save Workspace As…") { model.save(as: true) }.keyboardShortcut("s", modifiers: [.command, .shift])
@@ -191,6 +199,8 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             model.persistNow()
         }
+        // Closing the window saves too: once it's closed, this view isn't there to see the app quit.
+        .onDisappear { model.persistNow() }
         .sheet(isPresented: $showBackends) { BackendsSheet(model: model) }
     }
 
